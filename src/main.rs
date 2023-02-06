@@ -1,6 +1,10 @@
 
 use gtk::prelude::*;
-use gtk::{ApplicationWindow, Button, ShortcutsWindow};
+use gtk::{ApplicationWindow, ShortcutsWindow};
+
+use quick_xml::events::{ BytesText};
+use quick_xml::writer::Writer;
+use std::io::Cursor;
 
 const GENERAL_SHORTCUTS: [(&str, &str); 3] = [
     ("Open Command Pallette", "<Primary><Shift>P"),
@@ -23,49 +27,140 @@ const EDITOR_SHORTCUTS: [(&str, &str); 12] = [
     ("Move cursor to end of document", "<Primary>End"),
 ];
 
-
 const APP_ID: &str = "org.gtk_rs.HelloWorld2";
 
 fn main() {
-    // Create a new application
     let app = adw::Application::builder().application_id(APP_ID).build();
-
-    // Connect to "activate" signal of `app`
     app.connect_activate(build_ui);
-
-    // Run the application
     app.run();
 }
 
-
 fn build_ui(app: &adw::Application) {
-    // Create a button with label and margins
-    let button = Button::builder()
-        .label("Press me!")
-        .margin_top(12)
-        .margin_bottom(12)
-        .margin_start(12)
-        .margin_end(12)
-        .build();
 
-    // Connect to "clicked" signal of `button`
-    button.connect_clicked(move |button| {
-        // Set the label to "Hello World!" after the button has been clicked on
-        button.set_label("Hello World!");
-    });
 
-    // Create a window
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    writer.create_element("interface")
+        .write_inner_content(|writer| {
+
+            writer
+                .create_element("object")
+                .with_attribute(("class", "GtkShortcutsWindow"))
+                .with_attribute(("id", "shortcuts"))
+
+                .write_inner_content(|writer| {
+                    writer
+                        .create_element("property")
+                        .with_attribute(("name", "modal"))
+                        .write_text_content(BytesText::new("True"))?;
+
+                    writer
+                        .create_element("child")
+                        .write_inner_content(|writer| {
+                            writer
+                                .create_element("object")
+                                .with_attribute(("class", "GtkShortcutsSection"))
+                                .write_inner_content(|writer| {
+                                    writer
+                                        .create_element("property")
+                                        .with_attribute(("name", "section-name"))
+                                        .write_text_content(BytesText::new("shortcuts"))?;
+
+                                    writer
+                                        .create_element("property")
+                                        .with_attribute(("name","max-height"))
+                                        .write_text_content(BytesText::new("10"))?;
+
+
+                                    writer
+                                        .create_element("child")
+                                        .write_inner_content(|writer| {
+                                            writer
+                                                .create_element("object")
+                                                .with_attribute(("class", "GtkShortcutsGroup"))
+                                                .write_inner_content(|writer| {
+                                                    writer
+                                                        //NOTE maybe need more attributes
+                                                        .create_element("property")
+                                                        .with_attribute(("name", "title"))
+                                                        .write_text_content(BytesText::new("General"))?;
+
+                                                    writer
+                                                        .create_element("child")
+                                                        .write_inner_content(|writer| {
+                                                            writer
+                                                                .create_element("object")
+                                                                .with_attribute(("class", "GtkShortcutsShortcut"))
+                                                                .write_inner_content(|writer| {
+                                                                    writer
+                                                                        .create_element("property")
+                                                                        .with_attribute(("name", "title"))
+                                                                        .write_text_content(BytesText::new("Add new feed"))?;
+
+                                                                    writer
+                                                                        .create_element("property")
+                                                                        .with_attribute(("name", "action-name"))
+                                                                        .write_text_content(BytesText::new("blahbla"))?;
+
+                                                                    writer
+                                                                        .create_element("property")
+                                                                        .with_attribute(("name", "accelerator"))
+                                                                        .write_text_content(BytesText::new("&lt;primary&gt;a"))?;
+
+                                                                    Ok(())
+                                                                });
+
+                                                            Ok(())
+                                                        });
+
+                                                    Ok(())
+
+                                                });
+
+                                            Ok(())
+                                        });
+
+
+                                    Ok(())
+                                });
+
+
+                            Ok(())
+                        });
+
+                    Ok(())
+                });
+
+            /*
+            let fruits = ["apple", "orange"];
+            for (quant, item) in fruits.iter().enumerate() {
+                writer
+                    .create_element("fruit")
+                    .with_attribute(("quantity", quant.to_string().as_str()))
+                    .write_text_content(BytesText::new(item))?;
+            }
+            */
+            Ok(())
+        });
+
+    let result = writer.into_inner().into_inner();
+
+    let s = match std::str::from_utf8(&result) {
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+    };
+
+    println!("JOJO {}",s);
+
+
+
     let window = ApplicationWindow::builder()
         .application(app)
         .title("My GTK App")
-        .child(&button)
         .build();
 
-    // Present window
     window.present();
 
-    let shortcutswindow = ShortcutsWindow::builder()
-        .build();
+    let shortcutswindow = gtk::builders::ShortcutsWindowBuilder::new().modal(true).build();
 
     let general_group = gtk::builders::ShortcutsGroupBuilder::new().title("General").build();
     for (title, accelerator) in GENERAL_SHORTCUTS.iter() {
@@ -77,7 +172,7 @@ fn build_ui(app: &adw::Application) {
             .build(),
             );
     }
-    let editors_group = gtk::builders::ShortcutsGroupBuilder::new().title("General").build();
+    let editors_group = gtk::builders::ShortcutsGroupBuilder::new().title("Editor").build();
     for (title, accelerator) in EDITOR_SHORTCUTS.iter() {
         editors_group.append(
             &gtk::builders::ShortcutsShortcutBuilder::new()
@@ -87,41 +182,22 @@ fn build_ui(app: &adw::Application) {
             .build(),
             );
     }
-    let editors_group2 = gtk::builders::ShortcutsGroupBuilder::new().title("General").build();
-    for (title, accelerator) in EDITOR_SHORTCUTS.iter() {
-        editors_group2.append(
-            &gtk::builders::ShortcutsShortcutBuilder::new()
-            .title(title)
-            .accelerator(accelerator)
-            .visible(true)
-            .build(),
-            );
-    }
-    let editors_group3 = gtk::builders::ShortcutsGroupBuilder::new().title("General").build();
-    for (title, accelerator) in EDITOR_SHORTCUTS.iter() {
-        editors_group3.append(
-            &gtk::builders::ShortcutsShortcutBuilder::new()
-            .title(title)
-            .accelerator(accelerator)
-            .visible(true)
-            .build(),
-            );
-    }
-
-    let section = gtk::ShortcutsSection::builder()
-        .build();
+    let section = gtk::builders::ShortcutsSectionBuilder::new().max_height(10).section_name("section1").title("section1").build();
+    shortcutswindow.set_child(Some(&section));
 
     section.append(&general_group);
     section.append(&editors_group);
-    section.append(&editors_group2);
-    section.append(&editors_group3);
-
-//    section.show_all();
-
-    shortcutswindow.set_child(Some(&section));
 
     shortcutswindow.present();
 
+    // Get `ShortcutsWindow` via `gtk::Builder`
+    //let builder = gtk::Builder::from_string(include_str!("shortcuts.ui"));
+    let builder = gtk::Builder::from_string(s);
+    let shortcuts: ShortcutsWindow = builder
+        .object("shortcuts")
+        .expect("Could not get object `shortcuts` from builder.");
 
+    //shortcuts.set_child(Some(&section));
 
+    shortcuts.present();
 }

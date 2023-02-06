@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 adw = { version = "0.2.1", package = "libadwaita" }
 gtk = { version = "0.5.4", package = "gtk4" }
+quick-xml = {}

@@ -31,8 +31,6 @@ impl ShortcutsWindow {
     pub fn new() -> ShortcutsWindow {
         let window = gtk::ShortcutsWindowBuilder::new().build();
 
-
-
         let general_group = gtk::ShortcutsGroupBuilder::new().title("General").build();
         for (title, accelerator) in GENERAL_SHORTCUTS.iter() {
             general_group.add(
@@ -57,7 +55,7 @@ impl ShortcutsWindow {
 
         let section = gtk::ShortcutsSectionBuilder::new().build();
         section.add(&general_group);
-        section.add(&editor_group);
+        //section.add(&editor_group);
         section.show_all();
         window.add(&section);
 
